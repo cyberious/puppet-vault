@@ -8,8 +8,12 @@ class vault::params {
   $group            = 'vault'
   $bin_dir          = '/usr/local/bin'
   $config_dir       = '/etc/vault'
-  $download_url     = 'https://releases.hashicorp.com/vault/0.5.0/vault_0.5.0_linux_amd64.zip'
+  $source_url       = 'https://releases.hashicorp.com/vault/'
   $service_name     = 'vault'
+  $arch             = $::architecture ? {
+    /(x86_64|amd64)/  => 'amd64',
+    default => $::architecture,
+  }
   $service_provider = $osfamily ? {
     'Debian'  => 'upstart',
     'RedHat'  => 'init',

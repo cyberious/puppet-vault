@@ -40,18 +40,21 @@
 #   `vault server --help`
 #
 class vault (
+  $version          = '5.0.1',
   $user             = $::vault::params::user,
   $group            = $::vault::params::group,
   $bin_dir          = $::vault::params::bin_dir,
   $config_dir       = $::vault::params::config_dir,
   $purge_config_dir = true,
-  $download_url     = $::vault::params::download_url,
+  $download_url     = undef,
+  $arch             = $::vault::params::arch,
   $service_name     = $::vault::params::service_name,
   $service_provider = $::vault::params::service_provider,
   $config_hash      = {},
   $service_options  = '',
 ) inherits ::vault::params {
   validate_hash($config_hash)
+  validate_re($version, '^\d+\.\d+\.\d+$')
 
   contain vault::install
   contain vault::config

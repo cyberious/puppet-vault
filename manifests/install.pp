@@ -2,9 +2,15 @@
 #
 class vault::install {
   $vault_bin = "${::vault::bin_dir}/vault"
+  $_version = $::vault::version
+
+  $_download_url = $::vault::download_url ? {
+    /http(s|):\/\// => $::vault::download_url,
+    default => "https://releases.hashicorp.com/vault/${_version}/vault_${_version}_linux_${::vault::arch}.zip"
+  }
 
   staging::deploy { 'vault.zip':
-    source  => $::vault::download_url,
+    source  => $_download_url,
     target  => $::vault::bin_dir,
     creates => $vault_bin,
   } ~>
