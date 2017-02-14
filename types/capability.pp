@@ -1,0 +1,1 @@
+type Vault::Capability = Enum['create', 'read', 'update', 'delete', 'list', 'sudo', 'deny']

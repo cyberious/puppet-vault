@@ -1,0 +1,10 @@
+<%- @rules.each do |path, params| -%>
+path "<%= path %>" {
+<%- if params['policy'] -%>
+  policy = "<%= params['policy'] %>"
+<%- end -%>
+<%- if params['capabilities'] -%>
+  capabilities = <%= params['capabilities'] %>
+<%- end -%>
+}
+<% end -%>
