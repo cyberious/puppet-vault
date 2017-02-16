@@ -1,50 +1,48 @@
 begin
-  require 'puppet_x/vault/helper'
+  require 'puppet/provider/vault_auth_type'
 rescue LoadError
   require 'pathname' # WORK_AROUND #14073 and #7788
   archive = Puppet::Module.find('archive', Puppet[:environment].to_s)
   raise(LoadError, "Unable to find archive module in modulepath #{Puppet[:basemodulepath] || Puppet[:modulepath]}") unless archive
-  require File.join archive.path, 'lib/puppet_x/vault/helper'
+  require File.join archive.path, 'lib/puppet/provider/vault_auth_type'
 end
 
-Puppet::Type.type(:vault_user).provide(:vault) do
+Puppet::Type.type(:vault_user).provide(:vault, :parent => Puppet::Provider::VaultAuthType) do
 
   mk_resource_methods
 
-  commands :vault => 'vault'
-
-  def exists?
-    @property_hash[:ensure] == :present
+  def groups=(values)
+    @property_flush[:groups] = values
   end
 
-  def create
-    if resource[:auth_type].nil?
-      raise(Puppet::Error, "Auth type required for vault_user #{resource[:username]}")
-    end
+  def run_create
     if resource[:groups] && resource[:groups].length > 0
       groups_cmd = "groups=#{resource[:groups].join(',')}"
     end
     begin
-      PuppetX::Vault::Helper.execute_vault("write auth/#{resource[:auth_type]}/users/#{resource[:username]} #{groups_cmd}")
+      result = execute_vault("write auth/#{resource[:auth_type]}/users/#{resource[:name]} #{groups_cmd}")
     rescue Exception => e
-      raise(Puppet::Error, "Unable to create user #{resource[:username]}\n#{e}")
+      raise(Puppet::Error, "Unable to create user #{resource[:name]}\n#{e}")
     end
 
-    @property_hash[:ensure] = :present
-  end
-
-  def destroy
-    if resource[:auth_type].nil?
-      raise(Puppet::Error, "Auth type required for vault_user #{resource[:username]}")
+    if result =~ /Success/
+      @property_hash[:ensure] = :present
+    else
+      raise(Puppet::Error, "Did not create group #{resource[:name]}")
     end
-    PuppetX::Vault::Helper.execute_vault("delete auth/#{resource[:auth_type]}/users/#{resource[:username]}")
   end
 
+  def run_destroy
+    result = execute_vault("delete auth/#{resource[:auth_type]}/users/#{resource[:name]}")
+    if result !~ /^Success!/
+      raise(Puppet::Error, "Unable to delete user #{resource[:name]}")
+    end
+  end
 
-  def self.get_groups(user, auth_type)
+  def get_groups(user, auth_type)
     groups = []
     begin
-      group_lines = PuppetX::Vault::Helper.execute_vault("read auth/#{auth_type}/users/#{user}").split("\n")
+      group_lines = execute_vault("read auth/#{auth_type}/users/#{user}").split("\n")
       if group_lines
         group_line = group_lines.select { |line| line =~ /^groups/ }[0]
         groups     = group_line.split(' ')[1].split(',')
@@ -56,44 +54,18 @@ Puppet::Type.type(:vault_user).provide(:vault) do
     groups
   end
 
-  def self.instances
-    items = []
-    PuppetX::Vault::Helper.auth_types.each do |auth_type|
-      begin
-        users = PuppetX::Vault::Helper.execute_vault("list auth/#{auth_type}/users").split("\n")
-      rescue Exception => e
-        users = []
-      end
-      if users && users.length > 1
-        users.shift(2) # Pop off the first two header elements
-      end
-      users.each do |user|
-        groups = get_groups(user, auth_type)
-        items << new(
-          :name      => user,
-          :ensure    => :present,
-          :groups    => groups,
-          :auth_type => auth_type,
-        )
-      end
+  def get_instance(name, auth_type)
+    result = {}
+    users  = execute_vault("list auth/#{auth_type}/users").split("\n")
+    if users.include?(name)
+      result = {:name      => name,
+                :ensure    => :present,
+                :groups    => get_groups(name, auth_type),
+                :auth_type => auth_type, }
     end
-    items
+
+    result
   end
 
-  def self.prefetch(resources)
-    users = instances
-    resources.keys.each do |name|
-      if provider = users.find { |user| user.name == name }
-        resources[name].provider = provider
-      end
-    end
-  end
-
-  def groups=(values)
-    create
-    @property_hash[:groups] = values
-
-    self.groups
-  end
 
 end

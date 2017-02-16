@@ -1,13 +1,14 @@
 begin
   require 'puppet_x/vault/helper'
+  require 'puppet/provider/vault'
 rescue LoadError
   require 'pathname' # WORK_AROUND #14073 and #7788
   archive = Puppet::Module.find('archive', Puppet[:environment].to_s)
   raise(LoadError, "Unable to find archive module in modulepath #{Puppet[:basemodulepath] || Puppet[:modulepath]}") unless archive
   require File.join archive.path, 'lib/puppet_x/vault/helper'
+  require File.join archive.path, 'lib/puppet/provider/vault'
 end
-
-Puppet::Type.type(:vault_policy).provide(:vault) do
+Puppet::Type.type(:vault_policy).provide(:vault, :parent => Puppet::Provider::Vault) do
 
 
   mk_resource_methods

@@ -50,12 +50,13 @@ class vault (
   $service_provider = $::vault::params::service_provider,
   $config_hash      = {},
   $service_options  = '',
-) inherits ::vault::params {
+) inherits vault::params {
+
   validate_hash($config_hash)
 
-  contain vault::install
-  contain vault::config
-  contain vault::service
+  include vault::install
+  include vault::config
+  include vault::service
 
   Class['vault::install'] -> Class['vault::config']
   Class['vault::config'] ~> Class['vault::service']
