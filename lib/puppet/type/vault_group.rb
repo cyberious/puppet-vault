@@ -2,12 +2,14 @@ Puppet::Type.newtype(:vault_group) do
 
   ensurable
 
-  newparam(:name, :namevar => true)
+  newparam(:name, :namevar => true) do
+
+  end
 
 
   newproperty(:policies, :array_matching => :all) do
     munge do |value|
-      value.downcase
+      value.downcase # Vault always forces policies to be lowercase
     end
   end
 

@@ -63,7 +63,8 @@ class vault (
   $download_url        = $::vault::params::download_url,
   $service_name        = $::vault::params::service_name,
   $service_provider    = $::vault::params::service_provider,
-  $manage_service     = $::vault::params::manage_service,
+  $service_configure   = true,
+  $manage_service      = $::vault::params::manage_service,
   $backend             = $::vault::params::backend,
   $manage_backend_dir  = $::vault::params::manage_backend_dir,
   $listener            = $::vault::params::listener,
@@ -108,9 +109,9 @@ class vault (
     validate_string($max_lease_ttl)
   }
 
-  contain vault::install
-  contain vault::config
-  contain vault::service
+  include vault::install
+  include vault::config
+  include vault::service
 
   Class['vault::install'] -> Class['vault::config']
   Class['vault::config'] ~> Class['vault::service']

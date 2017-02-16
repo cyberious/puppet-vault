@@ -1,5 +1,5 @@
 class vault::globals (
-  $admin_token,
+  Sensitive $admin_token,
 ) {
 
 }

@@ -5,48 +5,48 @@
 class vault::config {
 
   $_config_hash = delete_undef_values({
-    'backend'           => $::vault::backend,
-    'ha_backend'        => $::vault::ha_backend,
-    'listener'          => $::vault::listener,
-    'telemetry'         => $::vault::telemetry,
-    'disable_cache'     => $::vault::disable_cache,
-    'default_lease_ttl' => $::vault::default_lease_ttl,
-    'max_lease_ttl'     => $::vault::max_lease_ttl,
-    'disable_mlock'     => $::vault::disable_mlock,
+    'backend'           => $vault::backend,
+    'ha_backend'        => $vault::ha_backend,
+    'listener'          => $vault::listener,
+    'telemetry'         => $vault::telemetry,
+    'disable_cache'     => $vault::disable_cache,
+    'default_lease_ttl' => $vault::default_lease_ttl,
+    'max_lease_ttl'     => $vault::max_lease_ttl,
+    'disable_mlock'     => $vault::disable_mlock,
   })
 
-  $config_hash = merge($_config_hash, $::vault::extra_config)
+  $config_hash = merge($_config_hash, $vault::extra_config)
 
-  file { $::vault::config_dir:
+  file { $vault::config_dir:
     ensure  => directory,
-    purge   => $::vault::purge_config_dir,
-    recurse => $::vault::purge_config_dir,
+    purge   => $vault::purge_config_dir,
+    recurse => $vault::purge_config_dir,
   }
 
   file { "${::vault::config_dir}/config.json":
     content => vault_sorted_json($config_hash),
-    owner   => $::vault::user,
-    group   => $::vault::group,
+    owner   => $vault::user,
+    group   => $vault::group,
   }
 
   # If using the file backend then the path must exist and be readable
   # and writable by the vault user, if we have a file path and the
   # manage_backend_dir attribute is true, then we create it here.
   #
-  if $::vault::backend['file'] and $::vault::manage_backend_dir {
-    if ! $::vault::backend['file']['path'] {
+  if $vault::backend['file'] and $vault::manage_backend_dir {
+    if !$vault::backend['file']['path'] {
       fail('Must provide a path attribute to backend file')
     }
 
-    file { $::vault::backend['file']['path']:
+    file { $vault::backend['file']['path']:
       ensure => directory,
-      owner  => $::vault::user,
-      group  => $::vault::group,
+      owner  => $vault::user,
+      group  => $vault::group,
     }
   }
 
-  if $::vault::install_method == 'archive' {
-    case $::vault::service_provider {
+  if $vault::service_configure {
+    case $vault::service_provider {
       'upstart': {
         file { '/etc/init/vault.conf':
           ensure  => file,
@@ -72,8 +72,8 @@ class vault::config {
           content => template('vault/vault.systemd.erb'),
           notify  => Exec['systemd-reload'],
         }
-        if ! defined(Exec['systemd-reload']) {
-          exec {'systemd-reload':
+        if !defined(Exec['systemd-reload']) {
+          exec { 'systemd-reload':
             command     => 'systemctl daemon-reload',
             path        => '/bin:/usr/bin:/sbin:/usr/sbin',
             user        => 'root',
